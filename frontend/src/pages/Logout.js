@@ -1,30 +1,44 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import axios from 'axios';
 import { authLogout } from '../redux/userRelated/userSlice';
 import styled from 'styled-components';
 
 const Logout = () => {
-    const currentUser = useSelector(state => state.user.currentUser);
-
     const navigate = useNavigate();
     const dispatch = useDispatch();
 
-    const handleLogout = () => {
-        dispatch(authLogout());
-        navigate('/');
-    };
+    useEffect(() => {
+        const handleLogout = async () => {
+            try {
+                // Inform backend about logout (if API exists)
+                await axios.post("http://localhost:6000/api/auth/logout");
 
-    const handleCancel = () => {
-        navigate(-1);
-    };
+                // Dispatch Redux logout action first
+                dispatch(authLogout());
+
+                // Clear local storage AFTER Redux state reset
+                setTimeout(() => {
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("role");
+                    localStorage.clear();
+                }, 100); // Small delay to ensure Redux state updates first
+
+                // Redirect to login
+                navigate('/login');
+            } catch (error) {
+                console.error("Logout failed:", error);
+            }
+        };
+
+        handleLogout();
+    }, [dispatch, navigate]);
 
     return (
         <LogoutContainer>
-            <h1>{currentUser.name}</h1>
-            <LogoutMessage>Are you sure you want to log out?</LogoutMessage>
-            <LogoutButtonLogout onClick={handleLogout}>Log Out</LogoutButtonLogout>
-            <LogoutButtonCancel onClick={handleCancel}>Cancel</LogoutButtonCancel>
+            <h1>Logging Out...</h1>
+            <p>Please wait while we log you out.</p>
         </LogoutContainer>
     );
 };
@@ -32,42 +46,7 @@ const Logout = () => {
 export default Logout;
 
 const LogoutContainer = styled.div`
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.2);
-  background-color: #85769f66;
-  color: black;
-`;
-
-const LogoutMessage = styled.p`
-  margin-bottom: 20px;
-  font-size: 16px;
   text-align: center;
-`;
-
-const LogoutButton = styled.button`
-  padding: 10px 20px;
-  margin-top: 10px;
-  border-radius: 5px;
-  font-size: 16px;
-  color: #fff;
-  cursor: pointer;
-
-  &:hover {
-    color: #fff;
-    background-color: #333;
-  }
-`;
-
-const LogoutButtonLogout = styled(LogoutButton)`
-  background-color: #ea0606;
-`;
-
-const LogoutButtonCancel = styled(LogoutButton)`
-  background-color: rgb(99, 60, 99);
+  margin-top: 50px;
+  font-size: 20px;
 `;
